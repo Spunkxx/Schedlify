@@ -1,0 +1,9 @@
+decouple
+celery
+redis
+fastapi[all]
+uvicorn
+requests
+beat
+flower
+cloudinary
