@@ -1,10 +1,9 @@
 from celery import Celery
 import logging
-from typing import Optional
 import base64
 from io import BytesIO
 
-from utils.helpers import post_text, post_image, post_resumable_video
+from utils.helpers import post_text, post_image,post_resumable_video,publish_reel
 
 # Celery setup
 celery_app = Celery('tasks', broker='redis://localhost:6379/0')
@@ -43,11 +42,10 @@ def job_to_run_image(self, message: str, link: str = None, image_url: str = None
 
 
 @celery_app.task()
-def job_to_run_video(message: str, video_url, video_content_encoded: bytes = None, link: str = None):
+def job_to_run_video(description: str, title: str, video_url=None, video_content_encoded: bytes = None, link: str = None):
     """Post video content to Facebook using a Celery task."""
     logger.info("Starting the video content post job.")
     
-    video_content_bytes = None
     video_file = None
     
     if video_content_encoded:
@@ -55,17 +53,28 @@ def job_to_run_video(message: str, video_url, video_content_encoded: bytes = Non
         video_file = BytesIO(video_content_bytes)
     
     try:
-        if not video_file and not video_url:
-            raise ValueError("Both video_file and video_url cannot be None")
-        
-        logger.info(f"Type of video_file: {type(video_file)}")
-        post_resumable_video(description=message, video_url=video_url, video_file=video_content_bytes, link=link)
+        post_resumable_video(description=description, title=title, video_url=video_url, video_file=video_file, link=link)
         logger.info("Successfully posted video content on Facebook from Celery task.")
+        print(f"Posting with description: {description}")
     except Exception as e:
         logger.error(f"Failed to post video content on Facebook from Celery task: {e}")
+  
+    
+            
+@celery_app.task()
+def job_to_run_reel(description: str, video_url=None, reel_content_encoded: bytes = None):
+    """Post reel content to Facebook using a Celery task."""
+    logger.info("Starting the reel content post job.")
 
+    reel_file = None
 
-        
-            
-            
-            
+    if reel_content_encoded:
+        reel_content_bytes = base64.b64decode(reel_content_encoded)
+        reel_file = BytesIO(reel_content_bytes)
+
+    try:
+        publish_reel(description=description, reel_file=reel_file, video_url=video_url)
+        logger.info("Successfully posted reel content on Facebook from Celery task.")
+    except Exception as e:
+        logger.error(f"Failed to post reel content on Facebook from Celery task: {e}")
+    
