@@ -1,9 +1,11 @@
-decouple
+fastapi
+uvicorn
 celery
 redis
-fastapi[all]
-uvicorn
+moviepy
+opencv-python
+python-multipart
 requests
-beat
-flower
-cloudinary
+ffmpeg-python
+openai
+python-dotenv

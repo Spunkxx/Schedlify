@@ -1,0 +1,157 @@
+import { useState, useRef } from "react";
+import toast, { Toaster } from "react-hot-toast";
+import "tailwindcss/tailwind.css";
+
+const App = () => {
+  const [videoFile, setVideoFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  // const [finalOutputUrl, setFinalOutputUrl] = useState(null);
+  const [aspectRatio, setAspectRatio] = useState("none");
+  const [quality, setQuality] = useState("NONE");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // trim
+  const [trimStart, setTrimStart] = useState(0);
+  const [trimEnd, setTrimEnd] = useState(0);
+
+  const videoRef = useRef(null);
+
+  const handleVideoChange = (e) => {
+    const file = e.target.files[0];
+    setVideoFile(file);
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+  };
+
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    const formData = new FormData();
+    formData.append("video", videoFile);
+    formData.append("aspect_ratio", aspectRatio);
+    formData.append("quality", quality);
+    // trim
+    formData.append("trim_start", trimStart);
+    formData.append("trim_end", trimEnd);
+
+    try {
+      const response = await fetch("http://localhost:8000/video/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        // const data = await response.json();
+        // const filename = data.output_file.split("\\").pop().split("/").pop();
+        // setFinalOutputUrl(`http://localhost:8000/videos/${filename}`);
+        toast.success("Video uploaded successfully!");
+      } else {
+        toast.error("Failed to upload video.");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("An error occurred.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="container mx-auto p-8">
+      <Toaster position="bottom-center" reverseOrder={false} />
+      <h1 className="text-3xl font-bold text-center text-blue-600 mb-6">
+        Video Uploader and Trimmer
+      </h1>
+      <div className="space-y-4">
+        <input
+          type="file"
+          accept="video/*"
+          onChange={handleVideoChange}
+          className="file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 w-full"
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+          {previewUrl && (
+            <div className="aspect-video w-full relative bg-black">
+              <video
+                ref={videoRef}
+                controls
+                src={previewUrl}
+                className="w-full h-full"
+              />
+              <div className="absolute bottom-4 left-0 right-0 flex justify-between px-4">
+                <input
+                  type="range"
+                  min="0"
+                  max={videoRef.current?.duration || 0}
+                  value={trimStart}
+                  onChange={(e) => setTrimStart(e.target.value)}
+                  className="w-1/2"
+                />
+                <input
+                  type="range"
+                  min="0"
+                  max={videoRef.current?.duration || 0}
+                  value={trimEnd}
+                  onChange={(e) => setTrimEnd(e.target.value)}
+                  className="w-1/2"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+        {/* <input
+          type="file"
+          accept="video/*"
+          onChange={handleVideoChange}
+          className="file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 w-full"
+        /> */}
+        <div className="md:flex gap-4">
+          <div className="md:w-1/2">
+            <label className="block mb-2 text-sm font-medium text-gray-700">
+              Aspect Ratio:
+            </label>
+            <select
+              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+              value={aspectRatio}
+              onChange={(e) => setAspectRatio(e.target.value)}
+            >
+              <option value="none">None</option>
+              <option value="16:9">16:9</option>
+              <option value="4:3">4:3</option>
+              <option value="2:1">2:1</option>
+              <option value="9:16">9:16</option>
+              <option value="1:1">1:1</option>
+              <option value="3:4">3:4</option>
+            </select>
+          </div>
+          <div className="md:w-1/2">
+            <label className="block mb-2 text-sm font-medium text-gray-700">
+              Quality:
+            </label>
+            <select
+              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+              value={quality}
+              onChange={(e) => setQuality(e.target.value)}
+            >
+              <option value="none">None</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+        </div>
+        <button
+          className={`text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center w-full ${
+            isLoading ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          onClick={handleSubmit}
+          disabled={isLoading}
+        >
+          {isLoading ? "Uploading..." : "Upload on process"}
+        </button>
+        {isLoading && <p className="text-center">Please wait for a while...</p>}
+      </div>
+    </div>
+  );
+};
+
+export default App;
